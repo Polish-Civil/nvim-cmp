@@ -5,6 +5,7 @@ local window = require('cmp.utils.window')
 local config = require('cmp.config')
 local types = require('cmp.types')
 local keymap = require('cmp.utils.keymap')
+local misc = require('cmp.utils.misc')
 local api = require('cmp.utils.api')
 
 local SIDE_PADDING = 1
@@ -221,7 +222,7 @@ custom_entries_view.draw = function(self)
 
   if api.is_cmdline_mode() then
     vim.api.nvim_win_call(self.entries_win.win, function()
-      vim.cmd([[redraw]])
+      misc.redraw()
     end)
   end
 end
@@ -313,10 +314,10 @@ custom_entries_view._insert = setmetatable({
         local cursor = api.get_cursor()
         local length = vim.fn.strchars(string.sub(api.get_current_line(), self.offset, cursor[2]), true)
         local keys = {}
-        table.insert(keys, keymap.t('<Cmd>set indentkeys=<CR>'))
+        table.insert(keys, keymap.indentkeys())
         table.insert(keys, keymap.backspace(length))
         table.insert(keys, word)
-        table.insert(keys, keymap.t('<Cmd>set indentkeys=%s<CR>'):format(vim.fn.escape(vim.bo.indentkeys, ' "|\\')))
+        table.insert(keys, keymap.indentkeys(vim.bo.indentkeys))
         feedkeys.call(
           table.concat(keys, ''),
           'int',

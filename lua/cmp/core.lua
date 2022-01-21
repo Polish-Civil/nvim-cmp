@@ -34,6 +34,9 @@ core.new = function()
   self.view.event:on('keymap', function(...)
     self:on_keymap(...)
   end)
+  self.view.event:on('complete_done', function(evt)
+    self.event:emit('complete_done', evt)
+  end)
   return self
 end
 
@@ -162,7 +165,7 @@ core.on_change = function(self, trigger_event)
       if vim.tbl_contains(config.get().completion.autocomplete or {}, trigger_event) then
         self:complete(ctx)
       else
-        self.filter.timeout = THROTTLE_TIME
+        self.filter.timeout = self.view:visible() and THROTTLE_TIME or 0
         self:filter()
       end
     else
@@ -251,7 +254,7 @@ core.complete = function(self, ctx)
   end
 
   if not self.view:get_active_entry() then
-    self.filter.timeout = THROTTLE_TIME
+    self.filter.timeout = self.view:visible() and THROTTLE_TIME or 0
     self:filter()
   end
 end
@@ -259,7 +262,7 @@ end
 ---Update completion menu
 core.filter = async.throttle(
   vim.schedule_wrap(function(self)
-    self.filter.timeout = THROTTLE_TIME
+    self.filter.timeout = self.view:visible() and THROTTLE_TIME or 0
 
     local ignore = false
     ignore = ignore or not api.is_suitable_mode()
@@ -315,7 +318,7 @@ core.confirm = function(self, e, option, callback)
   -- Close menus.
   self.view:close()
 
-  feedkeys.call(keymap.t('<Cmd>set indentkeys=<CR>'), 'n')
+  feedkeys.call(keymap.indentkeys(), 'n')
   feedkeys.call('', 'n', function()
     local ctx = context.new()
     local keys = {}
@@ -363,10 +366,10 @@ core.confirm = function(self, e, option, callback)
         if has_cursor_line_text_edit then
           return
         end
-        vim.lsp.util.apply_text_edits(text_edits, ctx.bufnr)
+        vim.lsp.util.apply_text_edits(text_edits, ctx.bufnr, 'utf-16')
       end)
     else
-      vim.lsp.util.apply_text_edits(e:get_completion_item().additionalTextEdits, ctx.bufnr)
+      vim.lsp.util.apply_text_edits(e:get_completion_item().additionalTextEdits, ctx.bufnr, 'utf-16')
     end
   end)
   feedkeys.call('', 'n', function()
@@ -383,8 +386,8 @@ core.confirm = function(self, e, option, callback)
       completion_item.textEdit.range = e:get_insert_range()
     end
 
-    local diff_before = e.context.cursor.character - completion_item.textEdit.range.start.character
-    local diff_after = completion_item.textEdit.range['end'].character - e.context.cursor.character
+    local diff_before = math.max(0, e.context.cursor.character - completion_item.textEdit.range.start.character)
+    local diff_after = math.max(0, completion_item.textEdit.range['end'].character - e.context.cursor.character)
     local new_text = completion_item.textEdit.newText
 
     if api.is_insert_mode() then
@@ -396,7 +399,7 @@ core.confirm = function(self, e, option, callback)
       if is_snippet then
         completion_item.textEdit.newText = ''
       end
-      vim.lsp.util.apply_text_edits({ completion_item.textEdit }, ctx.bufnr)
+      vim.lsp.util.apply_text_edits({ completion_item.textEdit }, ctx.bufnr, 'utf-16')
       local texts = vim.split(completion_item.textEdit.newText, '\n')
       local position = completion_item.textEdit.range.start
       position.line = position.line + (#texts - 1)
@@ -421,11 +424,13 @@ core.confirm = function(self, e, option, callback)
       feedkeys.call(table.concat(keys, ''), 'int')
     end
   end)
-  feedkeys.call(keymap.t('<Cmd>set indentkeys=%s<CR>'):format(vim.fn.escape(vim.bo.indentkeys, ' "|\\')), 'n')
+  feedkeys.call(keymap.indentkeys(vim.bo.indentkeys), 'n')
   feedkeys.call('', 'n', function()
     e:execute(vim.schedule_wrap(function()
       release()
-      self.event:emit('confirm_done', e)
+      self.event:emit('confirm_done', {
+        entry = e,
+      })
       if callback then
         callback()
       end
@@ -438,6 +443,7 @@ core.reset = function(self)
   for _, s in pairs(self.sources) do
     s:reset()
   end
+  self.context = context.empty()
 end
 
 return core
