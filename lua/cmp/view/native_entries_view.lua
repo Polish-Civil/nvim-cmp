@@ -101,7 +101,7 @@ native_entries_view.info = function(self)
   if self:visible() then
     local info = vim.fn.pum_getpos()
     return {
-      width = info.width + (info.scrollbar and 1 or 0),
+      width = info.width + (info.scrollable and 1 or 0),
       height = info.height,
       row = info.row,
       col = info.col,
@@ -141,6 +141,20 @@ native_entries_view.select_prev_item = function(self, option)
       feedkeys.call(keymap.t('<Up>'), 'n', callback)
     end
   end
+end
+
+native_entries_view.get_offset = function(self)
+  if self:visible() then
+    return self.offset
+  end
+  return nil
+end
+
+native_entries_view.get_entries = function(self)
+  if self:visible() then
+    return self.entries
+  end
+  return {}
 end
 
 native_entries_view.get_first_entry = function(self)

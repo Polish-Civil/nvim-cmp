@@ -98,16 +98,17 @@ entry.get_offset = function(self)
 end
 
 ---Create word for vim.CompletedItem
+---NOTE: This method doesn't clear the cache after completionItem/resolve.
 ---@return string
 entry.get_word = function(self)
-  return self.cache:ensure({ 'get_word', self.resolved_completion_item and 1 or 0 }, function()
+  return self.cache:ensure({ 'get_word' }, function()
     --NOTE: This is nvim-cmp specific implementation.
     if misc.safe(self:get_completion_item().word) then
       return self:get_completion_item().word
     end
 
     local word
-    if misc.safe(self:get_completion_item().textEdit) then
+    if misc.safe(self:get_completion_item().textEdit) and not misc.empty(self:get_completion_item().textEdit.newText) then
       word = str.trim(self:get_completion_item().textEdit.newText)
       if self:get_completion_item().insertTextFormat == types.lsp.InsertTextFormat.Snippet then
         word = vim.lsp.util.parse_snippet(word)
@@ -116,7 +117,7 @@ entry.get_word = function(self)
       if 0 < overwrite[2] or self:get_completion_item().insertTextFormat == types.lsp.InsertTextFormat.Snippet then
         word = str.get_word(word, string.byte(self.context.cursor_after_line, 1), overwrite[1] or 0)
       end
-    elseif misc.safe(self:get_completion_item().insertText) then
+    elseif not misc.empty(self:get_completion_item().insertText) then
       word = str.trim(self:get_completion_item().insertText)
       if self:get_completion_item().insertTextFormat == types.lsp.InsertTextFormat.Snippet then
         word = str.get_word(vim.lsp.util.parse_snippet(word))
@@ -259,10 +260,12 @@ entry.get_vim_item = function(self, suggest_offset)
     end
 
     -- remove duplicated string.
-    for i = 1, #word - 1 do
-      if str.has_prefix(self.context.cursor_after_line, string.sub(word, i, #word)) then
-        word = string.sub(word, 1, i - 1)
-        break
+    if self:get_offset() ~= self.context.cursor.col then
+      for i = 1, #word - 1 do
+        if str.has_prefix(self.context.cursor_after_line, string.sub(word, i, #word)) then
+          word = string.sub(word, 1, i - 1)
+          break
+        end
       end
     end
 
@@ -337,17 +340,32 @@ end
 
 ---Match line.
 ---@param input string
+---@param matching_config cmp.MatchingConfig
 ---@return { score: number, matches: table[] }
-entry.match = function(self, input)
-  return self.match_cache:ensure({ input, self.resolved_completion_item and 1 or 0 }, function()
-    local filter_text = self:get_filter_text()
+entry.match = function(self, input, matching_config)
+  return self.match_cache:ensure({
+    input,
+    self.resolved_completion_item and 1 or 0,
+    matching_config.disallow_fuzzy_matching and 1 or 0,
+    matching_config.disallow_partial_matching and 1 or 0,
+    matching_config.disallow_prefix_unmatching and 1 or 0,
+  }, function()
+    local option = {
+      disallow_fuzzy_matching = matching_config.disallow_fuzzy_matching,
+      disallow_partial_matching = matching_config.disallow_partial_matching,
+      disallow_prefix_unmatching = matching_config.disallow_prefix_unmatching,
+      synonyms = {
+        self:get_word(),
+        self:get_completion_item().label,
+      },
+    }
 
     local score, matches, _
-    score, matches = matcher.match(input, filter_text, { self:get_word(), self:get_completion_item().label })
+    score, matches = matcher.match(input, self:get_filter_text(), option)
 
     -- Support the language server that doesn't respect VSCode's behaviors.
     if score == 0 then
-      if misc.safe(self:get_completion_item().textEdit) then
+      if misc.safe(self:get_completion_item().textEdit) and not misc.empty(self:get_completion_item().textEdit.newText) then
         local diff = self.source_offset - self:get_offset()
         if diff > 0 then
           local prefix = string.sub(self.context.cursor_line, self:get_offset(), self:get_offset() + diff)
@@ -355,13 +373,13 @@ entry.match = function(self, input)
           accept = accept or string.match(prefix, '^[^%a]+$')
           accept = accept or string.find(self:get_completion_item().textEdit.newText, prefix, 1, true)
           if accept then
-            score, matches = matcher.match(input, prefix .. filter_text, { self:get_word(), self:get_completion_item().label })
+            score, matches = matcher.match(input, prefix .. self:get_filter_text(), option)
           end
         end
       end
     end
 
-    if filter_text ~= self:get_completion_item().label then
+    if self:get_filter_text() ~= self:get_completion_item().label then
       _, matches = matcher.match(input, self:get_completion_item().label, { self:get_word() })
     end
 
@@ -393,9 +411,14 @@ entry.get_documentation = function(self)
 
   -- detail
   if misc.safe(item.detail) and item.detail ~= '' then
+    local ft = self.context.filetype
+    local dot_index = string.find(ft, '%.')
+    if dot_index ~= nil then
+      ft = string.sub(ft, 0, dot_index - 1)
+    end
     table.insert(documents, {
       kind = types.lsp.MarkupKind.Markdown,
-      value = ('```%s\n%s\n```'):format(self.context.filetype, str.trim(item.detail)),
+      value = ('```%s\n%s\n```'):format(ft, str.trim(item.detail)),
     })
   end
 

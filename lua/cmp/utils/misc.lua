@@ -29,6 +29,46 @@ misc.concat = function(list1, list2)
   return new_list
 end
 
+---Repeat values
+---@generic T
+---@param str_or_tbl T
+---@param count number
+---@return T
+misc.rep = function(str_or_tbl, count)
+  if type(str_or_tbl) == 'string' then
+    return string.rep(str_or_tbl, count)
+  end
+  local rep = {}
+  for _ = 1, count do
+    for _, v in ipairs(str_or_tbl) do
+      table.insert(rep, v)
+    end
+  end
+  return rep
+end
+
+---Return the valu is empty or not.
+---@param v any
+---@return boolean
+misc.empty = function(v)
+  if not v then
+    return true
+  end
+  if v == vim.NIL then
+    return true
+  end
+  if type(v) == 'string' and v == '' then
+    return true
+  end
+  if type(v) == 'table' and vim.tbl_isempty(v) then
+    return true
+  end
+  if type(v) == 'number' and v == 0 then
+    return true
+  end
+  return false
+end
+
 ---The symbol to remove key in misc.merge.
 misc.none = vim.NIL
 
@@ -184,11 +224,12 @@ end
 misc.redraw = setmetatable({
   doing = false,
   force = false,
+  termcode = vim.api.nvim_replace_termcodes('<C-r><Esc>', true, true, true),
 }, {
   __call = function(self, force)
     if vim.tbl_contains({ '/', '?' }, vim.fn.getcmdtype()) then
       if vim.o.incsearch then
-        return vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<C-r>=""<CR>', true, true, true), 'n', true)
+        return vim.api.nvim_feedkeys(self.termcode, 'in', true)
       end
     end
 
@@ -210,3 +251,4 @@ misc.redraw = setmetatable({
 })
 
 return misc
+
