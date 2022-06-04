@@ -12,7 +12,7 @@ Readme!
 2. This is my hobby project. You can support me via GitHub sponsors.
 3. Bug reports are welcome, but I might not fix if you don't provide a minimal reproduction configuration and steps.
 4. The nvim-cmp documents is [here](./doc/cmp.txt).
-
+5. The nvim-cmp is designed for `customization`! It's not designed to `work out of the box`.
 
 
 Concept
@@ -22,7 +22,6 @@ Concept
 - Powerful customizability via Lua functions
 - Smart handling of key mapping
 - No flicker
-
 
 
 Setup
@@ -134,15 +133,14 @@ EOF
 ```
 
 
-
 ### Where can I find more completion sources?
 
 - See the [Wiki](https://github.com/hrsh7th/nvim-cmp/wiki/List-of-sources)
 - See the [GitHub topic](https://github.com/topics/nvim-cmp).
 
 
-
 ### Where can I find advanced configuration examples?
 
 See the [Wiki](https://github.com/hrsh7th/nvim-cmp/wiki)
+
 

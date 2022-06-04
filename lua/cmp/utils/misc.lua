@@ -134,7 +134,7 @@ misc.safe = function(v)
 end
 
 ---Treat 1/0 as bool value
----@param v boolean|"1"|"0"
+---@param v boolean|1|0
 ---@param def boolean
 ---@return boolean
 misc.bool = function(v, def)
@@ -251,4 +251,3 @@ misc.redraw = setmetatable({
 })
 
 return misc
-
