@@ -37,7 +37,7 @@ ghost_text_view.new = function()
       if #text > 0 then
         vim.api.nvim_buf_set_extmark(0, ghost_text_view.ns, row - 1, col, {
           right_gravity = false,
-          virt_text = { { text, c.hl_group or 'Comment' } },
+          virt_text = { { text, type(c) == 'table' and c.hl_group or 'Comment' } },
           virt_text_pos = 'overlay',
           hl_mode = 'combine',
           ephemeral = true,
@@ -76,6 +76,10 @@ end
 ---@param e cmp.Entry
 ghost_text_view.show = function(self, e)
   if not api.is_insert_mode() then
+    return
+  end
+  local c = config.get().experimental.ghost_text
+  if not c then
     return
   end
   local changed = e ~= self.entry

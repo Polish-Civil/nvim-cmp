@@ -57,12 +57,13 @@ cmp.ItemField = {
 ---@field public reason? cmp.ContextReason
 ---@field public config? cmp.ConfigSchema
 
----@class cmp.Setup
----@field public __call fun(c: cmp.ConfigSchema)
+---@class cmp.SetupProperty
 ---@field public buffer fun(c: cmp.ConfigSchema)
 ---@field public global fun(c: cmp.ConfigSchema)
 ---@field public cmdline fun(type: string|string[], c: cmp.ConfigSchema)
 ---@field public filetype fun(type: string|string[], c: cmp.ConfigSchema)
+
+---@alias cmp.Setup cmp.SetupProperty | fun(c: cmp.ConfigSchema)
 
 ---@class cmp.SourceApiParams: cmp.SourceConfig
 
@@ -79,7 +80,7 @@ cmp.ItemField = {
 
 ---@class cmp.ConfigSchema
 ---@field private revision integer
----@field public enabled fun():boolean|boolean
+---@field public enabled boolean | fun(): boolean
 ---@field public performance cmp.PerformanceConfig
 ---@field public preselect cmp.PreselectMode
 ---@field public completion cmp.CompletionConfig
@@ -117,6 +118,7 @@ cmp.ItemField = {
 ---@field public max_width integer|nil
 ---@field public max_height integer|nil
 ---@field public scrolloff integer|nil
+---@field public scrollbar boolean|true
 
 ---@class cmp.ConfirmationConfig
 ---@field public default_behavior cmp.ConfirmBehavior
@@ -124,6 +126,8 @@ cmp.ItemField = {
 
 ---@class cmp.MatchingConfig
 ---@field public disallow_fuzzy_matching boolean
+---@field public disallow_fullfuzzy_matching boolean
+---@field public disallow_partial_fuzzy_matching boolean
 ---@field public disallow_partial_matching boolean
 ---@field public disallow_prefix_unmatching boolean
 

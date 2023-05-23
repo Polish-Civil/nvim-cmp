@@ -20,7 +20,7 @@ keymap.normalize = function(keys)
   local normalize_buf = buffer.ensure('cmp.util.keymap.normalize')
   vim.api.nvim_buf_set_keymap(normalize_buf, 't', keys, '<Plug>(cmp.utils.keymap.normalize)', {})
   for _, map in ipairs(vim.api.nvim_buf_get_keymap(normalize_buf, 't')) do
-    if keymap.equals(map.rhs, '<Plug>(cmp.utils.keymap.normalize)') then
+    if keymap.t(map.rhs) == keymap.t('<Plug>(cmp.utils.keymap.normalize)') then
       vim.api.nvim_buf_del_keymap(normalize_buf, 't', keys)
       return map.lhs
     end
@@ -83,6 +83,21 @@ keymap.backspace = function(count)
   return table.concat(keys, '')
 end
 
+---Create delete keys.
+---@param count string|integer
+---@return string
+keymap.delete = function(count)
+  if type(count) == 'string' then
+    count = vim.fn.strchars(count, true)
+  end
+  if count <= 0 then
+    return ''
+  end
+  local keys = {}
+  table.insert(keys, keymap.t(string.rep('<Del>', count)))
+  return table.concat(keys, '')
+end
+
 ---Update indentkeys.
 ---@param expr? string
 ---@return string
@@ -95,7 +110,7 @@ end
 ---@param b string
 ---@return boolean
 keymap.equals = function(a, b)
-  return keymap.t(a) == keymap.t(b)
+  return keymap.normalize(a) == keymap.normalize(b)
 end
 
 ---Register keypress handler.
@@ -193,6 +208,7 @@ keymap.get_map = function(mode, lhs)
         rhs = map.rhs or '',
         expr = map.expr == 1,
         callback = map.callback,
+        desc = map.desc,
         noremap = map.noremap == 1,
         script = map.script == 1,
         silent = map.silent == 1,
@@ -210,6 +226,7 @@ keymap.get_map = function(mode, lhs)
         rhs = map.rhs or '',
         expr = map.expr == 1,
         callback = map.callback,
+        desc = map.desc,
         noremap = map.noremap == 1,
         script = map.script == 1,
         silent = map.silent == 1,
