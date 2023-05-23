@@ -29,9 +29,9 @@ ghost_text_view.new = function()
 
       local row, col = unpack(vim.api.nvim_win_get_cursor(0))
       local line = vim.api.nvim_get_current_line()
-      if string.sub(line, col + 1) ~= '' then
-        return
-      end
+      -- if string.sub(line, col + 1) ~= '' then
+      --   return
+      -- end
 
       local text = self.text_gen(self, line, col)
       if #text > 0 then
@@ -69,7 +69,7 @@ ghost_text_view.text_gen = function(self, line, cursor_col)
   else
     text = ''
   end
-  return text
+  return text .. string.sub(line, cursor_col + 1)
 end
 
 ---Show ghost text
